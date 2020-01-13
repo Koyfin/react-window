@@ -72,8 +72,8 @@ export type Props<T> = {|
   initialScrollLeft?: number,
   initialScrollTop?: number,
   innerRef?: any,
-  innerElementType?: string | React$AbstractComponent<InnerProps, any>,
-  innerTagName?: string, // deprecated
+  // innerElementType?: string | React$AbstractComponent<InnerProps, any>,
+  // innerTagName?: string, // deprecated
   itemData: T,
   itemKey?: (params: {|
     columnIndex: number,
@@ -83,8 +83,8 @@ export type Props<T> = {|
   onItemsRendered?: OnItemsRenderedCallback,
   onScroll?: OnScrollCallback,
   outerRef?: any,
-  outerElementType?: string | React$AbstractComponent<OuterProps, any>,
-  outerTagName?: string, // deprecated
+  // outerElementType?: string | React$AbstractComponent<OuterProps, any>,
+  // outerTagName?: string, // deprecated
   overscanColumnCount?: number,
   overscanColumnsCount?: number, // deprecated
   overscanCount?: number, // deprecated
@@ -95,6 +95,9 @@ export type Props<T> = {|
   style?: Object,
   useIsScrolling: boolean,
   width: number,
+  // innerRenderer,
+  // cellRenderer,
+  // outerRenderer,
 |};
 
 type State = {|
@@ -157,6 +160,11 @@ if (process.env.NODE_ENV !== 'production') {
     devWarningsTagName = new WeakSet();
   }
 }
+
+const defaultInnerRenderer = props => createElement('div', props);
+
+const defaultOuterRenderer = (innerComponent, props) =>
+  createElement('div', props, innerComponent);
 
 export default function createGridComponent({
   getColumnOffset,
@@ -392,26 +400,32 @@ export default function createGridComponent({
       }
     }
 
+    forceUpdateGrid() {
+      this._instanceProps.lastMeasuredColumnIndex = -1;
+      this._instanceProps.lastMeasuredRowIndex = -1;
+      this._getItemStyleCache(-1);
+      this.forceUpdate();
+    }
+
     render() {
       const {
-        children,
         className,
-        columnCount,
+        // columnCount,
         direction,
         height,
         innerRef,
-        innerElementType,
-        innerTagName,
-        itemData,
-        itemKey = defaultItemKey,
-        outerElementType,
-        outerTagName,
-        rowCount,
+        // itemData,
+        // itemKey = defaultItemKey,
+        // rowCount,
         style,
-        useIsScrolling,
+        // useIsScrolling,
         width,
+        // rowRenderer,
+        innerRenderer = defaultInnerRenderer,
+        outerRenderer = defaultOuterRenderer,
+        // cellRenderer,
       } = this.props;
-      const { isScrolling } = this.state;
+      const { isScrolling, scrollTop } = this.state;
 
       const [
         columnStartIndex,
@@ -419,31 +433,49 @@ export default function createGridComponent({
       ] = this._getHorizontalRangeToRender();
       const [rowStartIndex, rowStopIndex] = this._getVerticalRangeToRender();
 
-      const items = [];
-      if (columnCount > 0 && rowCount) {
-        for (
-          let rowIndex = rowStartIndex;
-          rowIndex <= rowStopIndex;
-          rowIndex++
-        ) {
-          for (
-            let columnIndex = columnStartIndex;
-            columnIndex <= columnStopIndex;
-            columnIndex++
-          ) {
-            items.push(
-              createElement(children, {
-                columnIndex,
-                data: itemData,
-                isScrolling: useIsScrolling ? isScrolling : undefined,
-                key: itemKey({ columnIndex, data: itemData, rowIndex }),
-                rowIndex,
-                style: this._getItemStyle(rowIndex, columnIndex),
-              })
-            );
-          }
-        }
-      }
+      // const items = [];
+      // if (columnCount > 0 && rowCount) {
+      //   for (
+      //     let rowIndex = rowStartIndex;
+      //     rowIndex <= rowStopIndex;
+      //     rowIndex++
+      //   ) {
+      //     if (rowRenderer) {
+      //       const elements = rowRenderer({
+      //         rowStartIndex,
+      //         columnStartIndex,
+      //         columnStopIndex,
+      //         isScrolling,
+      //         rowIndex,
+      //         getStyle: this._getItemStyle,
+      //       });
+      //
+      //       if (Array.isArray(elements)) {
+      //         elements.forEach(el => items.push(el));
+      //       } else {
+      //         items.push(elements);
+      //       }
+      //
+      //       continue;
+      //     }
+      //
+      //     for (
+      //       let columnIndex = columnStartIndex;
+      //       columnIndex <= columnStopIndex;
+      //       columnIndex++
+      //     ) {
+      //       items.push(
+      //         cellRenderer({
+      //           columnIndex,
+      //           rowIndex,
+      //           isScrolling: useIsScrolling ? isScrolling : undefined,
+      //           key: itemKey({ columnIndex, data: itemData, rowIndex }),
+      //           style: this._getItemStyle(rowIndex, columnIndex),
+      //         })
+      //       );
+      //     }
+      //   }
+      // }
 
       // Read this value AFTER items have been created,
       // So their actual sizes (if variable) are taken into consideration.
@@ -456,33 +488,38 @@ export default function createGridComponent({
         this._instanceProps
       );
 
-      return createElement(
-        outerElementType || outerTagName || 'div',
-        {
-          className,
-          onScroll: this._onScroll,
-          ref: this._outerRefSetter,
-          style: {
-            position: 'relative',
-            height,
-            width,
-            overflow: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            willChange: 'transform',
-            direction,
-            ...style,
-          },
+      const innerComponent = innerRenderer({
+        // children: items,
+        ref: innerRef,
+        columnStartIndex,
+        columnStopIndex,
+        rowStartIndex,
+        rowStopIndex,
+        scrollTop,
+        isScrolling,
+        getStyle: this._getItemStyle,
+        style: {
+          height: estimatedTotalHeight,
+          pointerEvents: isScrolling ? 'none' : undefined,
+          width: estimatedTotalWidth,
         },
-        createElement(innerElementType || innerTagName || 'div', {
-          children: items,
-          ref: innerRef,
-          style: {
-            height: estimatedTotalHeight,
-            pointerEvents: isScrolling ? 'none' : undefined,
-            width: estimatedTotalWidth,
-          },
-        })
-      );
+      });
+
+      return outerRenderer(innerComponent, {
+        className,
+        onScroll: this._onScroll,
+        ref: this._outerRefSetter,
+        style: {
+          position: 'relative',
+          height,
+          width,
+          overflow: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          willChange: 'transform',
+          direction,
+          ...style,
+        },
+      });
     }
 
     _callOnItemsRendered: (
@@ -869,23 +906,23 @@ const validateSharedProps = (
       }
     }
 
-    if (innerTagName != null || outerTagName != null) {
-      if (devWarningsTagName && !devWarningsTagName.has(instance)) {
-        devWarningsTagName.add(instance);
-        console.warn(
-          'The innerTagName and outerTagName props have been deprecated. ' +
-            'Please use the innerElementType and outerElementType props instead.'
-        );
-      }
-    }
+    // if (innerTagName != null || outerTagName != null) {
+    //   if (devWarningsTagName && !devWarningsTagName.has(instance)) {
+    //     devWarningsTagName.add(instance);
+    //     console.warn(
+    //       'The innerTagName and outerTagName props have been deprecated. ' +
+    //         'Please use the innerElementType and outerElementType props instead.'
+    //     );
+    //   }
+    // }
 
-    if (children == null) {
-      throw Error(
-        'An invalid "children" prop has been specified. ' +
-          'Value should be a React component. ' +
-          `"${children === null ? 'null' : typeof children}" was specified.`
-      );
-    }
+    // if (children == null) {
+    //   throw Error(
+    //     'An invalid "children" prop has been specified. ' +
+    //       'Value should be a React component. ' +
+    //       `"${children === null ? 'null' : typeof children}" was specified.`
+    //   );
+    // }
 
     switch (direction) {
       case 'ltr':
