@@ -51,7 +51,6 @@
     "build:source": "rollup -c",
     "build": "del dist && mkdir dist && yarn build:flow && yarn build:source",
     "start": "rollup -c -w",
-    "prepare": "yarn run build",
     "website:build": "cd website && yarn build",
     "website:deploy": "cd website && yarn deploy",
     "website:run": "cd website && yarn start"
