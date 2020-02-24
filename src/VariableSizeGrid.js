@@ -27,13 +27,18 @@ type InstanceProps = {|
   lastMeasuredColumnIndex: number,
   lastMeasuredRowIndex: number,
   rowMetadataMap: ItemMetadataMap,
+  lastRowCount: number,
+  lastGetRowHeight: number | ((rowIndex: number) => number),
+  lastGetColumnWidth: number | ((columnIndex: number) => number),
 |};
 
 const getEstimatedTotalHeight = (
-  { rowCount }: Props<any>,
+  { rowCount, totalHeight }: Props<any>,
   { rowMetadataMap, estimatedRowHeight, lastMeasuredRowIndex }: InstanceProps
 ) => {
   let totalSizeOfMeasuredRows = 0;
+
+  if (totalHeight) return totalHeight;
 
   // Edge case check for when the number of items decreases while a scroll is in progress.
   // https://github.com/bvaughn/react-window/pull/138
@@ -420,6 +425,9 @@ const VariableSizeGrid = createGridComponent({
     const {
       estimatedColumnWidth,
       estimatedRowHeight,
+      rowHeight,
+      columnWidth,
+      rowCount,
     } = ((props: any): VariableSizeProps);
 
     const instanceProps = {
@@ -429,6 +437,9 @@ const VariableSizeGrid = createGridComponent({
       lastMeasuredColumnIndex: -1,
       lastMeasuredRowIndex: -1,
       rowMetadataMap: {},
+      lastRowCount: rowCount,
+      lastGetRowHeight: rowHeight,
+      lastGetColumnWidth: columnWidth,
     };
 
     instance.resetAfterColumnIndex = (
@@ -481,7 +492,7 @@ const VariableSizeGrid = createGridComponent({
     return instanceProps;
   },
 
-  shouldResetStyleCacheOnItemSizeChange: false,
+  shouldResetStyleCacheOnItemSizeChange: true,
 
   validateProps: ({ columnWidth, rowHeight }: Props<any>): void => {
     if (process.env.NODE_ENV !== 'production') {

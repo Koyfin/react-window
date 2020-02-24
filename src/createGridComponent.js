@@ -95,6 +95,7 @@ export type Props<T> = {|
   style?: Object,
   useIsScrolling: boolean,
   width: number,
+  totalHeight?: number,
   // innerRenderer,
   // cellRenderer,
   // outerRenderer,
@@ -420,6 +421,9 @@ export default function createGridComponent({
         style,
         // useIsScrolling,
         width,
+        rowCount,
+        rowHeight,
+        columnWidth,
         // rowRenderer,
         innerRenderer = defaultInnerRenderer,
         outerRenderer = defaultOuterRenderer,
@@ -476,6 +480,21 @@ export default function createGridComponent({
       //     }
       //   }
       // }
+
+      if (this._instanceProps.lastGetRowHeight !== rowHeight) {
+        this._instanceProps.lastGetRowHeight = rowHeight;
+        this._instanceProps.lastMeasuredRowIndex = -1;
+      }
+
+      if (this._instanceProps.lastGetColumnWidth !== columnWidth) {
+        this._instanceProps.lastGetColumnWidth = columnWidth;
+        this._instanceProps.lastMeasuredColumnIndex = -1;
+      }
+
+      if (this._instanceProps.lastRowCount !== rowCount) {
+        this._instanceProps.lastRowCount = rowCount;
+        this._instanceProps.lastMeasuredRowIndex = -1;
+      }
 
       // Read this value AFTER items have been created,
       // So their actual sizes (if variable) are taken into consideration.

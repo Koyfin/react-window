@@ -477,6 +477,9 @@ function createGridComponent(_ref2) {
           innerRef = _this$props4.innerRef,
           style = _this$props4.style,
           width = _this$props4.width,
+          rowCount = _this$props4.rowCount,
+          rowHeight = _this$props4.rowHeight,
+          columnWidth = _this$props4.columnWidth,
           _this$props4$innerRen = _this$props4.innerRenderer,
           innerRenderer = _this$props4$innerRen === void 0 ? defaultInnerRenderer : _this$props4$innerRen,
           _this$props4$outerRen = _this$props4.outerRenderer,
@@ -534,7 +537,22 @@ function createGridComponent(_ref2) {
       //     }
       //   }
       // }
-      // Read this value AFTER items have been created,
+
+
+      if (this._instanceProps.lastGetRowHeight !== rowHeight) {
+        this._instanceProps.lastGetRowHeight = rowHeight;
+        this._instanceProps.lastMeasuredRowIndex = -1;
+      }
+
+      if (this._instanceProps.lastGetColumnWidth !== columnWidth) {
+        this._instanceProps.lastGetColumnWidth = columnWidth;
+        this._instanceProps.lastMeasuredColumnIndex = -1;
+      }
+
+      if (this._instanceProps.lastRowCount !== rowCount) {
+        this._instanceProps.lastRowCount = rowCount;
+        this._instanceProps.lastMeasuredRowIndex = -1;
+      } // Read this value AFTER items have been created,
       // So their actual sizes (if variable) are taken into consideration.
 
 
@@ -739,11 +757,13 @@ var validateSharedProps = function validateSharedProps(_ref5, _ref6) {
 var DEFAULT_ESTIMATED_ITEM_SIZE = 50;
 
 var getEstimatedTotalHeight = function getEstimatedTotalHeight(_ref, _ref2) {
-  var rowCount = _ref.rowCount;
+  var rowCount = _ref.rowCount,
+      totalHeight = _ref.totalHeight;
   var rowMetadataMap = _ref2.rowMetadataMap,
       estimatedRowHeight = _ref2.estimatedRowHeight,
       lastMeasuredRowIndex = _ref2.lastMeasuredRowIndex;
-  var totalSizeOfMeasuredRows = 0; // Edge case check for when the number of items decreases while a scroll is in progress.
+  var totalSizeOfMeasuredRows = 0;
+  if (totalHeight) return totalHeight; // Edge case check for when the number of items decreases while a scroll is in progress.
   // https://github.com/bvaughn/react-window/pull/138
 
   if (lastMeasuredRowIndex >= rowCount) {
@@ -985,14 +1005,20 @@ createGridComponent({
   initInstanceProps: function initInstanceProps(props, instance) {
     var _ref5 = props,
         estimatedColumnWidth = _ref5.estimatedColumnWidth,
-        estimatedRowHeight = _ref5.estimatedRowHeight;
+        estimatedRowHeight = _ref5.estimatedRowHeight,
+        rowHeight = _ref5.rowHeight,
+        columnWidth = _ref5.columnWidth,
+        rowCount = _ref5.rowCount;
     var instanceProps = {
       columnMetadataMap: {},
       estimatedColumnWidth: estimatedColumnWidth || DEFAULT_ESTIMATED_ITEM_SIZE,
       estimatedRowHeight: estimatedRowHeight || DEFAULT_ESTIMATED_ITEM_SIZE,
       lastMeasuredColumnIndex: -1,
       lastMeasuredRowIndex: -1,
-      rowMetadataMap: {}
+      rowMetadataMap: {},
+      lastRowCount: rowCount,
+      lastGetRowHeight: rowHeight,
+      lastGetColumnWidth: columnWidth
     };
 
     instance.resetAfterColumnIndex = function (columnIndex, shouldForceUpdate) {
@@ -1044,7 +1070,7 @@ createGridComponent({
 
     return instanceProps;
   },
-  shouldResetStyleCacheOnItemSizeChange: false,
+  shouldResetStyleCacheOnItemSizeChange: true,
   validateProps: function validateProps(_ref7) {
     var columnWidth = _ref7.columnWidth,
         rowHeight = _ref7.rowHeight;
